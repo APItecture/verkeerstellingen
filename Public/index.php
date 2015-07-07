@@ -7,6 +7,7 @@
                 margin: 0;
                 padding: 0;
                 font-family: Helvetica, Tahoma, Arial, Sans-serif;
+                line-height: 1.4;
             }
             h1 {
                 line-height: 1.5;
@@ -34,40 +35,20 @@
         <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
         <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDH3cHtFfjEEIraQ8dSaloUm5dybciHZ3A"></script>
         
-        
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
             google.load("visualization", "1", {packages:["corechart"]});
-            google.setOnLoadCallback(drawChart);
-            function drawChart() {
-                var data = google.visualization.arrayToDataTable([
-                    ['Categorie', 'Aandeel'],
-                    ['Cat1', 629],
-                    ['Cat2', 4],
-                    ['Cat3', 0],
-                    ['Cat4', 0],
-                    ['Cat5', 1],
-                    ['Cat6', 0]
-                ]);
-                
-                var options = {
-                    title: 'Aandeel categorien'
-                };
-                
-                var chart = new google.visualization.PieChart(document.getElementById('piechart'));
-                
-                chart.draw(data, options);
-            }
         </script>
         
         <script type="text/javascript"
-        src="https://www.google.com/jsapi?autoload={
-            'modules':[{
-                'name':'visualization',
-                'version':'1',
-                'packages':['corechart']
-            }]
-        }"></script>
+            src="https://www.google.com/jsapi?autoload={
+                'modules':[{
+                    'name':'visualization',
+                    'version':'1',
+                    'packages':['corechart']
+                }]
+            }">
+        </script>
         
         <script type="text/javascript">
             google.setOnLoadCallback(drawChart);
@@ -101,6 +82,24 @@
                     <h3>Informatie</h3>
                     <h1></h1>
                 </section>
+                <section id="facetten">
+                    <input type="checkbox">PA<br>
+                    <input type="checkbox">LV<br>
+                    <input type="checkbox">MV<br>
+                    <input type="checkbox">ZV<br>
+                    van <input><br>
+                    tot <input><br>
+                    per
+                    <select>
+                        <option></option>
+                        <option>uur</option>
+                        <option>etmaal</option>
+                        <option>week</option>
+                        <option>maand</option>
+                        <option>jaar</option>
+                    </select>
+                    <input type="submit" value="bereken">
+                </section>
                 <section id="grafieken">
                     <div id="curve_chart" style="width: 100%;"></div>
                     <div id="piechart" style="width: 100%;"></div>
@@ -113,11 +112,6 @@
                         <li>Hoeveel verkeer rijdt er gemiddeld tussen 0:00 en 6:00 over weg x? (geluidshinder gerelateerde vraagstuk. Burgers klagen over het vele verkeer ’s nachts maar klopt dat wel?)</li>
                         <li>Wat is het drukste moment van de dag op weg x? (uur verloop) Of: Hoeveel verkeerd rijdt er tijdens de spitsen over weg x? (vraag die we om verschillende redenen krijgen maar meestal gerelateerd aan een (tijdelijke)ingreep om in te schatten wat de inpakt is)</li>
                     </ul>
-                </section>
-                <section id="links">
-                    <h1>Hulp applicaties voor development</h1>
-                    <a href="https://shancarter.github.io/mr-data-converter/">Mr. Data Converter</a><br>
-                    <a href="http://json.parser.online.fr/">JSON-parser online</a>
                 </section>
             </main>
         </div>
@@ -138,19 +132,42 @@
                     var marker = new google.maps.Marker({
                         position: new google.maps.LatLng(lus['N.breedte'], lus['O.lengte']),
                         map: map,
-                        title: lus['Locatie naam']
+                        title: lus['Locatie naam'],
+                        lus: lus
                     });
-                    google.maps.event.addListener(marker, 'click', function () {
-                        $('#informatie').html('<h1>' + lus['Locatie naam'] + '</h1>');
-                        for (var key in lus) {
-                            $('#informatie').append('<div><span>' + key + '</span> : <span>' + lus[key] + '</span><br>');
-                        }
-                    });
+                    google.maps.event.addListener(marker, 'click', clickMarker);
                 });
             });
             
-            $.get("tellingen.json", function (data) {
-            });
+            function clickMarker() {
+                $('#informatie').html('<h1>' + this.lus['Locatie naam'] + '</h1>');
+                for (var key in this.lus) {
+                    $('#informatie').append('<div><span>' + key + '</span> : <span>' + this.lus[key] + '</span><br>');
+                }
+                
+                // Piechart voor categorie aandeel.
+                $.get('getTellingen.php?telpunt=' + this.lus['Locatie code'] + '&facet=cat', function (data) {
+                    var dataArray = [['Categorie', 'Aandeel']];
+                    for (var key in data.result[0]) {
+                        if (key !== '_id') {
+                            dataArray.push([key, data.result[0][key]]);
+                        }
+                    }
+                    var dataTable = google.visualization.arrayToDataTable(dataArray);
+                
+                    var options = {
+                        title: 'Aandeel categorien'
+                    };
+                    
+                    var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+                    
+                    chart.draw(dataTable, options);
+                });
+                
+                // Piechart voor aantal per jaar per richting.
+                $.get('getTellingen.php?telpunt=' + this.lus['Locatie code'] + '&facet=aantal', function (data) {
+                });
+            }
         </script>
     </body>
 </html>
