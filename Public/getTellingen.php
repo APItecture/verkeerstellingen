@@ -5,7 +5,6 @@ ini_set('error_reporting', E_ALL);
 
 $mongo = new MongoClient();
 $db = $mongo->verkeerstellingen;
-$collection = $db->tellingen;
 
 $codes = [
     'AMSTD001' => 'T01',
@@ -38,100 +37,97 @@ $codes = [
     'AMSTD028' => 'T28'
 ];
 
-$ops = [];
+$groepering = isset($_GET['groeperen_per']) ? $_GET['groeperen_per'] : "jaar";
 
-$match = [];
-if (isset($_GET['telpunt']) && isset($codes[$_GET['telpunt']])) {
-    $match = [
-        '$match' => [
-            'Telpunt' => $codes[$_GET['telpunt']]
-        ]
-    ];
+switch ($groepering) {
+    case "uur":
+        $groepering = "{
+            richting: this.Richting,
+            bucket: this.Datum + ' ' + this.Uur
+        }";
+        break;
+    case "etmaal":
+        $groepering = "{
+            richting: this.Richting,
+            bucket: this.Datum
+        }";
+        break;
+    case "maand":
+        $groepering = "{
+            richting: this.Richting,
+            bucket: this.Datum.split('-')[1] + '-' + this.Datum.split('-')[2]
+        }";
+        break;
+    case "jaar":
+    default:
+        $groepering = "{
+            richting: this.Richting,
+            bucket: this.Datum.split('-')[2]
+        }";
 }
 
-if (!empty($match)) {
-    $ops[] = $match;
-}
-
-if ($_GET['facet']) {
-    switch($_GET['facet']) {
-        case 'cat':
-            $group = [
-                '$group' => [
-                    '_id' => '$Telpunt',
-                    'Cat1' => [
-                        '$sum' => '$Cat1'
-                    ],
-                    'Cat2' => [
-                        '$sum' => '$Cat2'
-                    ],
-                    'Cat3' => [
-                        '$sum' => '$Cat3'
-                    ],
-                    'Cat4' => [
-                        '$sum' => '$Cat4'
-                    ],
-                    'Cat5' => [
-                        '$sum' => '$Cat5'
-                    ],
-                    'Cat6' => [
-                        '$sum' => '$Cat6'
-                    ]
-                ]
-            ];
-            break;
-        case 'aantal':
-            $group = [
-                '$group' => [
-                    '_id' => [
-                        'Telpunt' => '$Telpunt',
-                        'Richting' => '$Richting'
-                    ],
-                    'Cat1' => [
-                        '$sum' => '$Cat1'
-                    ],
-                    'Cat2' => [
-                        '$sum' => '$Cat2'
-                    ],
-                    'Cat3' => [
-                        '$sum' => '$Cat3'
-                    ],
-                    'Cat4' => [
-                        '$sum' => '$Cat4'
-                    ],
-                    'Cat5' => [
-                        '$sum' => '$Cat5'
-                    ],
-                    'Cat6' => [
-                        '$sum' => '$Cat6'
-                    ]
-                ]
-            ];
-            break;
-        default:
-            break;
+$map = new MongoCode("
+    function () {
+        emit({$groepering}, {
+            totaal: this.Totaal,
+            cat1: this.Cat1,
+            cat2: this.Cat2,
+            cat3: this.Cat3,
+            cat4: this.Cat4,
+            cat5: this.Cat5,
+            cat6: this.Cat6
+        });
     }
-}
+");
 
-if (!empty($group)) {
-    $ops[] = $group;
-}
+$reduce = new MongoCode("
+    function (key, values) {
+        var r = {
+            totaal: 0,
+            cat1: 0,
+            cat2: 0,
+            cat3: 0,
+            cat4: 0,
+            cat5: 0,
+            cat6: 0
+        };
+        values.forEach(function (value) {
+            r.totaal += value.totaal;
+            r.cat1 += value.cat1;
+            r.cat2 += value.cat2;
+            r.cat3 += value.cat3;
+            r.cat4 += value.cat4;
+            r.cat5 += value.cat5;
+            r.cat6 += value.cat6;
+        });
+        return r;
+    }
+");
 
-$tellingen = $collection->aggregate($ops);
+$ops = [
+    'mapreduce' => 'tellingen',
+    'map' => $map,
+    'reduce' => $reduce,
+    'query' => ['Telpunt' => $codes[$_GET['telpunt']]],
+    'out' => 'counts'
+];
 
-//$tellingen = $collection->find();
-//$tellingen->limit(5);
-
-//$results = (object)[
-//    'tellingen' => []
-//];
-
-//foreach($tellingen as $telling) {
-//    $result = (object) $telling;
-//    unset($result->{'_id'});
-//    $results->tellingen[] = $result;
+//if (!empty($_GET['richting'])) {
+//    $ops['query']['Richting'] = intval($_GET['richting']);
 //}
+
+$mapReduce = $db->command($ops);
+
+$tellingen = $db->selectCollection($mapReduce['result'])->find();
+
+$results = [
+    'tellingen' => []
+];
+
+foreach ($tellingen as $telling) {
+    $results['tellingen'][] = $telling;
+}
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-echo json_encode($tellingen);
+echo json_encode($results);
