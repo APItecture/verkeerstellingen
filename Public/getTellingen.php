@@ -3,8 +3,11 @@
 ini_set('display_errors', '1');
 ini_set('error_reporting', E_ALL);
 
+date_default_timezone_set('Europe/Amsterdam'); //FIXME
+
 $mongo = new MongoClient();
 $db = $mongo->verkeerstellingen;
+$collection = $db->tellingen;
 
 $codes = [
     'AMSTD001' => 'T01',
@@ -37,97 +40,77 @@ $codes = [
     'AMSTD028' => 'T28'
 ];
 
+$match = [
+    '$match' => [
+        'Telpunt' => $codes[$_GET['telpunt']]
+    ]
+];
+
+if (!empty($_GET['datum_vanaf']) || !empty($_GET['datum_tot'])) {
+    $match['$match']['date'] = [];
+}
+if (!empty($_GET['datum_vanaf'])) {
+    $match['$match']['date']['$gte'] = new MongoDate(strtotime($_GET["datum_vanaf"])); // FIXME
+}
+if (!empty($_GET['datum_tot'])) {
+    $match['$match']['date']['$lt'] = new MongoDate(strtotime($_GET["datum_tot"])); //FIXME
+}
+
 $groepering = isset($_GET['groeperen_per']) ? $_GET['groeperen_per'] : "jaar";
 
 switch ($groepering) {
     case "uur":
-        $groepering = "{
-            richting: this.Richting,
-            bucket: this.Datum + ' ' + this.Uur
-        }";
+        $groepering = [
+            'richting' => '$Richting',
+            'datum' => ['$concat' => ['$jaar', '-', '$maand', '-', '$dag', ' ',  '$uur']]
+        ];
         break;
+    case "dag":
     case "etmaal":
-        $groepering = "{
-            richting: this.Richting,
-            bucket: this.Datum
-        }";
+        $groepering = [
+            'richting' => '$Richting',
+            'datum' => ['$concat' => ['$jaar', '-', '$maand', '-', '$dag', ' ', '0:00']]
+        ];
         break;
+    //case "week": // FIXME
+    //    $groepering = [
+    //        'richting' => '$Richting',
+    //        //'jaar' => ['$year' => '$date'],
+    //        //'week' => ['$week' => '$date']
+    //    ];
+    //    break;
     case "maand":
-        $groepering = "{
-            richting: this.Richting,
-            bucket: this.Datum.split('-')[1] + '-' + this.Datum.split('-')[2]
-        }";
+        $groepering = [
+            'richting' => '$Richting',
+            'datum' => ['$concat' => ['$jaar', '-', '$maand', '-', '1', ' ', '0:00']]
+        ];
         break;
     case "jaar":
     default:
-        $groepering = "{
-            richting: this.Richting,
-            bucket: this.Datum.split('-')[2]
-        }";
+        $groepering = [
+            'richting' => '$Richting',
+            'datum' => ['$concat' => ['$jaar', '-', '1', '-', '1', ' ', '0:00']]
+        ];
 }
 
-$map = new MongoCode("
-    function () {
-        emit({$groepering}, {
-            totaal: this.Totaal,
-            cat1: this.Cat1,
-            cat2: this.Cat2,
-            cat3: this.Cat3,
-            cat4: this.Cat4,
-            cat5: this.Cat5,
-            cat6: this.Cat6
-        });
-    }
-");
-
-$reduce = new MongoCode("
-    function (key, values) {
-        var r = {
-            totaal: 0,
-            cat1: 0,
-            cat2: 0,
-            cat3: 0,
-            cat4: 0,
-            cat5: 0,
-            cat6: 0
-        };
-        values.forEach(function (value) {
-            r.totaal += value.totaal;
-            r.cat1 += value.cat1;
-            r.cat2 += value.cat2;
-            r.cat3 += value.cat3;
-            r.cat4 += value.cat4;
-            r.cat5 += value.cat5;
-            r.cat6 += value.cat6;
-        });
-        return r;
-    }
-");
-
-$ops = [
-    'mapreduce' => 'tellingen',
-    'map' => $map,
-    'reduce' => $reduce,
-    'query' => ['Telpunt' => $codes[$_GET['telpunt']]],
-    'out' => 'counts'
+$group = [
+    '$group' => [
+        '_id' => $groepering,
+        'totaal' => ['$sum' => '$Totaal'],
+        'PA' => ['$sum' => '$PA'],
+        'LV' => ['$sum' => '$LV'],
+        'MV' => ['$sum' => '$MV'],
+        'ZV' => ['$sum' => '$ZV']
+    ]
 ];
 
-//if (!empty($_GET['richting'])) {
-//    $ops['query']['Richting'] = intval($_GET['richting']);
-//}
+$ops = [$match, $group];
 
-$mapReduce = $db->command($ops);
-
-$tellingen = $db->selectCollection($mapReduce['result'])->find();
-
-$results = [
-    'tellingen' => []
-];
-
-foreach ($tellingen as $telling) {
-    $results['tellingen'][] = $telling;
-}
+$tellingen = $collection->aggregate($ops);
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-echo json_encode($results);
+echo json_encode([
+    'tellingen' => $tellingen['result'],
+    'ops' => $ops
+]);

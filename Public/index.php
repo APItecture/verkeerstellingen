@@ -78,50 +78,52 @@
         <div class="wrapper">
             <div id="map-canvas"></div>
             <main>
-                <section id="informatie">
-                    <h3>Informatie</h3>
-                    <h1></h1>
-                </section>
-                <section id="facetten">
-                    <form>
-                        <label class="checkbox">
-                            <input name="type[]" type="checkbox" value="PA"> PA
-                        </label>
-                        <label class="checkbox">
-                            <input name="type[]" type="checkbox" value="LV"> LV
-                        </label>
-                        <label class="checkbox">
-                            <input name="type[]" type="checkbox" value="MV"> MV
-                        </label>
-                        <label class="checkbox">
-                            <input name="type[]" type="checkbox" value="ZV"> ZV
-                        </label>
-                        <label>
-                            <span>datum vanaf</span>
-                            <input name="datum_vanaf">
-                        </label>
-                        <label>
-                            <span>datum tot</span>
-                            <input name="datum_tot">
-                        </label>
-                        <label>
-                            <span>groeperen per</span>
-                            <select name="groeperen_per">
-                                <option></option>
-                                <option>uur</option>
-                                <option>etmaal</option>
-                                <!--<option>week</option>-->
-                                <option>maand</option>
-                                <option>jaar</option>
-                            </select>
-                        </label>
-                        <input type="submit" value="bereken">
-                    </form>
-                </section>
-                <section id="grafieken">
-                    <div id="curve_chart" style="width: 100%;"></div>
-                    <div id="piechart" style="width: 100%;"></div>
-                </section>
+                <div id="item_info" style="display: none">
+                    <section id="informatie">
+                        <h3>Informatie</h3>
+                        <h1></h1>
+                    </section>
+                    <section id="facetten">
+                        <form>
+                            <label class="checkbox">
+                                <input name="type[]" type="checkbox" value="PA"> PA
+                            </label>
+                            <label class="checkbox">
+                                <input name="type[]" type="checkbox" value="LV"> LV
+                            </label>
+                            <label class="checkbox">
+                                <input name="type[]" type="checkbox" value="MV"> MV
+                            </label>
+                            <label class="checkbox">
+                                <input name="type[]" type="checkbox" value="ZV"> ZV
+                            </label>
+                            <label>
+                                <span>datum vanaf</span>
+                                <input name="datum_vanaf">
+                            </label>
+                            <label>
+                                <span>datum tot</span>
+                                <input name="datum_tot">
+                            </label>
+                            <label>
+                                <span>groeperen per</span>
+                                <select name="groeperen_per">
+                                    <option></option>
+                                    <option>uur</option>
+                                    <option>etmaal</option>
+                                    <!--<option>week</option>-->
+                                    <option>maand</option>
+                                    <option>jaar</option>
+                                </select>
+                            </label>
+                            <input type="submit" value="bereken">
+                        </form>
+                    </section>
+                    <section id="grafieken">
+                        <div id="curve_chart" style="width: 100%;"></div>
+                        <div id="piechart" style="width: 100%;"></div>
+                    </section>
+                </div>
                 <section id="specificatie">
                     <h1>Typische vragen</h1>
                     <ul>
@@ -132,96 +134,10 @@
                     </ul>
                 </section>
                 <section id="workinprogress">
-                    <p>This site is work in progress</p>
                     <p><a href="http://www.getmdl.io/">Get MDL</a></p>
                 </section>
             </main>
         </div>
-        <script type="text/javascript">
-            var marker;
-        
-            var map = new google.maps.Map(
-                document.getElementById('map-canvas'),
-                {
-                    center: {
-                        lat: 52.3747158,
-                        lng: 4.8986142
-                    },
-                    zoom: 12
-                }
-            );
-            
-            $.get("lussen.json", function (data) {
-                data.lussen.forEach(function (lus) {
-                    var marker = new google.maps.Marker({
-                        position: new google.maps.LatLng(lus['N.breedte'], lus['O.lengte']),
-                        map: map,
-                        title: lus['Locatie naam'],
-                        lus: lus
-                    });
-                    google.maps.event.addListener(marker, 'click', clickMarker);
-                });
-            });
-            
-            function clickMarker() {
-                $('#informatie').html('<h1>' + this.lus['Locatie naam'] + '</h1>');
-                for (var key in this.lus) {
-                    $('#informatie').append('<div><span class="key">' + key + ':</span><span class="value">' + this.lus[key] + '</span><br>');
-                }
-                marker = this;
-            }
-            
-            $("form").submit(function (e) {
-                e.preventDefault();
-                bereken($(this).serialize());
-            });
-            
-            function bereken(query) {
-                // Piechart voor categorie aandeel.
-                $.get('getTellingenPerCategorie.php?telpunt=' + marker.lus['Locatie code'] + '&' + query, function (data) {
-                    var dataArray = [['Categorie', 'Aandeel']];
-                    for (var key in data.tellingen[0]) {
-                        if (key !== '_id') {
-                            dataArray.push([key, data.tellingen[0][key]]);
-                        }
-                    }
-                    var dataTable = google.visualization.arrayToDataTable(dataArray);
-                
-                    var options = {
-                        title: 'Aandeel categorien'
-                    };
-                    
-                    var chart = new google.visualization.PieChart(document.getElementById('piechart'));
-                    
-                    chart.draw(dataTable, options);
-                });
-                
-                // Piechart voor aantal per jaar per richting.
-                $.get('getTellingen.php?telpunt=' + marker.lus['Locatie code'] + '&' + query, function (data) {
-                    var buckets = {};
-                    data.tellingen.forEach(function (telling) {
-                        if (!buckets[telling['_id'].bucket]) {
-                            buckets[telling['_id'].bucket] = {};
-                        }
-                        buckets[telling['_id'].bucket][telling['_id'].richting] = telling.value.totaal;
-                    });
-                    var dataArray = [['Bucket', 'Richting 1', 'Richting 2', 'Totaal']];
-                    for (var key in buckets) {
-                        dataArray.push([key, buckets[key]['1'], buckets[key]['2'], buckets[key]['1'] + buckets[key]['2']]);
-                    }
-                    var data = google.visualization.arrayToDataTable(dataArray);
-                    
-                    var options = {
-                        title: 'Telling',
-                        curveType: 'function',
-                        legend: { position: 'bottom' }
-                    };
-                            
-                    var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
-                            
-                    chart.draw(data, options);
-                });
-            }
-        </script>
+        <script src="main.js"></script>
     </body>
 </html>

@@ -8,7 +8,7 @@
 
 # 3) json importeren in MongoDB
 
-  mongoimport --db verkeerstellingen --collection lussen --type json --file lussen.json --jsonArray
+  $> mongoimport --db verkeerstellingen --collection lussen --type json --file lussen.json --jsonArray
   
 # =========
 # TELLINGEN
@@ -18,4 +18,11 @@
 
 # 3) csv importeren in MongoDB
 
-  mongoimport --db verkeerstellingen --collection tellingen --type csv --file Data.xxxxxxx.csv --headerline
+  $> mongoimport --db verkeerstellingen --collection tellingen --type csv --file Data.xxxxxxx.csv --headerline
+
+# =============
+# TRANSFORMEREN
+# =============
+
+  $> mongo
+  $> load("dateTransform.js")
