@@ -46,14 +46,24 @@ $match = [
     ]
 ];
 
-if (!empty($_GET['datum_vanaf']) || !empty($_GET['datum_tot'])) {
+if (!empty($_GET['datum_vanaf']) || !empty($_GET['datum_tot']) || !empty($_GET['uren_filter']) || !empty($_GET['weekdagen_filter'])) {
     $match['$match']['date'] = [];
 }
 if (!empty($_GET['datum_vanaf'])) {
-    $match['$match']['date']['$gte'] = new MongoDate(strtotime($_GET["datum_vanaf"])); // FIXME
+    $match['$match']['date']['$gte'] = new MongoDate(strtotime($_GET["datum_vanaf"]));
 }
 if (!empty($_GET['datum_tot'])) {
-    $match['$match']['date']['$lt'] = new MongoDate(strtotime($_GET["datum_tot"])); //FIXME
+    $match['$match']['date']['$lt'] = new MongoDate(strtotime($_GET["datum_tot"]));
+}
+if (!empty($_GET['uren_filter'])) {
+    $match['$match']['uur'] = [
+        '$in' => $_GET['uren_filter'] // FIXME validate input
+    ];
+}
+if (!empty($_GET['weekdagen_filter'])) {
+    $match['$match']['weekdag'] = [
+        '$in' => $_GET['weekdagen_filter'] // FIXME validate input
+    ];
 }
 
 $groepering = isset($_GET['groeperen_per']) ? $_GET['groeperen_per'] : "jaar";
@@ -62,7 +72,7 @@ switch ($groepering) {
     case "uur":
         $groepering = [
             'richting' => '$Richting',
-            'datum' => ['$concat' => ['$jaar', '-', '$maand', '-', '$dag', ' ',  '$uur']]
+            'datum' => ['$concat' => ['$jaar', '-', '$maand', '-', '$dag', ' ',  '$Uur']]
         ];
         break;
     case "dag":

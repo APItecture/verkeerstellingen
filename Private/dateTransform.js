@@ -8,6 +8,7 @@ cursor = db.tellingen.find().forEach(function (u) {
 		"jaar": d[2],
 		"maand": d[1],
 		"dag": d[0],
-		"uur": u.Uur
+		"uur": (u.Uur.split(":"))[0],
+		"weekdag": IsoDatum.getDay().toString(10)
 	}});
 });
