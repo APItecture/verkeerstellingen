@@ -46,9 +46,6 @@ $match = [
     ]
 ];
 
-if (!empty($_GET['datum_vanaf']) || !empty($_GET['datum_tot']) || !empty($_GET['uren_filter']) || !empty($_GET['weekdagen_filter'])) {
-    $match['$match']['date'] = [];
-}
 if (!empty($_GET['datum_vanaf'])) {
     $match['$match']['date']['$gte'] = new MongoDate(strtotime($_GET["datum_vanaf"]));
 }
@@ -57,18 +54,16 @@ if (!empty($_GET['datum_tot'])) {
 }
 if (!empty($_GET['uren_filter'])) {
     $match['$match']['uur'] = [
-        '$in' => $_GET['uren_filter'] // FIXME validate input
+        '$in' => $_GET['uren_filter']
     ];
 }
 if (!empty($_GET['weekdagen_filter'])) {
     $match['$match']['weekdag'] = [
-        '$in' => $_GET['weekdagen_filter'] // FIXME validate input
+        '$in' => $_GET['weekdagen_filter']
     ];
 }
 
-$groepering = isset($_GET['groeperen_per']) ? $_GET['groeperen_per'] : "jaar";
-
-switch ($groepering) {
+switch (isset($_GET['groeperen_per']) ? $_GET['groeperen_per'] : "jaar") {
     case "uur":
         $groepering = [
             'richting' => '$Richting',

@@ -1,0 +1,57 @@
+<label>
+    <span>type verkeer</span>
+</label>
+<label class="checkbox">
+    <input name="type[]" type="checkbox" value="PA" checked="checked"> PA
+</label>
+<label class="checkbox">
+    <input name="type[]" type="checkbox" value="LV" checked="checked"> LV
+</label>
+<label class="checkbox">
+    <input name="type[]" type="checkbox" value="MV" checked="checked"> MV
+</label>
+<label class="checkbox">
+    <input name="type[]" type="checkbox" value="ZV" checked="checked"> ZV
+</label>
+<label>
+    <span>datum vanaf</span><br>
+    <input name="datum_vanaf" type="date">
+</label>
+<label>
+    <span>datum tot</span><br>
+    <input name="datum_tot" type="date">
+</label>
+<label>
+    <span>groeperen per</span><br>
+    <select name="groeperen_per">
+        <option>jaar</option>
+        <option>maand</option>
+        <option>etmaal</option>
+        <option>uur</option>
+        <!--<option>week</option>-->
+    </select>
+</label>
+<label>
+    <span>filter uren</span>
+    <div class="dropdown">
+        <% for (var i = 0; i < 24; i++) { %>
+            <label class="checkbox">
+                <input name="uren_filter[]" type="checkbox" value="<%=i%>" checked="checked"> <%=i%>
+            </label><br>
+        <% } %>
+    </div>
+</label>
+<label>
+    <span>filter weekdagen</span>
+    <div class="dropdown">
+        <% (['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag']).forEach(function (dag, i) { %>
+            <label class="checkbox">
+                <input name="weekdagen_filter[]" type="checkbox" value="<%=i%>" checked="checked"> <%=dag%>
+            </label><br>
+        <% }) %>
+    </div>
+</label>
+<label>
+    <!--<span></span>-->
+    <input type="submit" value="bereken">
+</label>

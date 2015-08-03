@@ -1,0 +1,105 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Nunito, Helvetica, Tahoma, Arial, Sans-serif;
+    line-height: 1.4;
+}
+h1 {
+    line-height: 1.5;
+    margin: 0;
+}
+h3 {
+    margin: 0;
+}
+.wrapper {
+    width: 100%;
+    height: 100%;
+}
+#map-canvas {
+    height: 100%;
+    width: 50%;
+    float: left;
+}
+#side-panel {
+    height: 100%;
+    width: 50%;
+    float: right;
+    overflow: auto;
+}
+header, main {
+    margin: 20px;
+}
+label {
+    display: block;
+    margin-bottom: 10px;
+}
+label.checkbox {
+    display: inline-block;
+    margin-right: 20px;
+}
+label span {
+    display: block;
+    margin-bottom: 10px;
+}
+div.field {
+    margin-bottom: 6px;
+}
+.key {
+    display: inline-block;
+    width: 140px;
+}
+.value {
+    font-weight: 700;
+}
+h1.amsterdam {
+    color: #ff0000;
+    line-height: 1;
+    font-size: 2em;
+    font-weight: 500;
+    height: 50px;
+}
+h1.amsterdam img {
+    height: 74px;
+    float: left;
+    margin: 3px;
+}
+.mapdetail {
+    float: right;
+    border: 10px solid #ffffff;
+    box-shadow: 1px 1px 5px #888888;
+    margin: 10px;
+}
+label span {
+    background: #f00;
+    color: #fff;
+    font-weight: 900;
+    display: inline-block;
+    padding: 4px;
+    margin: 10px 0;
+}
+nav {
+    margin: 20px;
+    text-align: right;
+    border-bottom: 1px solid black;
+}
+nav ul {
+    margin: 0;
+}
+nav li {
+    padding: 4px;
+    display: inline-block;
+    background: #000;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+}
+nav li.active {
+    background: #f00;
+}
+main > section {
+    display: none;
+}
+main > section.active {
+    display: block;
+}
